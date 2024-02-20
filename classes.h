@@ -9,9 +9,11 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <istream>
 #include <sstream>
 #include <bitset>
-#include <time>
+#include <ctime>
+
 using namespace std;
 
 class Record {
@@ -54,24 +56,25 @@ private:
     // Insert new record into index
     void insertRecord(Record record) {
         int remainder = record.id % 216;
-        string binary_remainder = format(remainder, 'b');
-        string least_significant_bits = binary_remainder[-2:];
 
-        ofstream file(fName, ios::app | ios::binary);
+        string binary_remainder = bitset<8>(remainder).to_string();
+        string least_significant_bits = binary_remainder.substr(binary_remainder.length()-i);
+
+        fstream file(fName, ios::app | ios::binary);
 
         // Add record to the index in the correct block, creating a overflow block if necessary
         for (int i = 0; i < blockDirectory.size(); ++i) {
-            if (blockDirectory[i] == int(least_significant_bits)){
+            if (blockDirectory[i] == atoi(least_significant_bits.c_str())){
                 // Seek in file to beginging of hashed page
                 int startOfPage = i * BLOCK_SIZE + 1;
                 file.seekp(startOfPage);
 
                 // See if page is empty
-                bool isEmpty = file && file.gcount() == 0;
+                bool isEmpty = (file.gcount() == 0);
 
                 // If page is empty, write record to the beginging of the page
                 if (isEmpty){
-                    file.write(binary_remainder, sizeof(binary_remainder));
+                    file.write(binary_remainder.c_str(), sizeof(binary_remainder));
                 }
 
                 // If page is not empty, loop to the next available space in memory
@@ -98,7 +101,7 @@ private:
                         // Will need to increase i once n > 2^i
                     }
 
-                file.write(binary_remainder, sizeof(binary_remainder));
+                file.write(binary_remainder.c_str(), sizeof(binary_remainder));
                 numRecords++;
             }
         }
@@ -125,11 +128,15 @@ public:
         blockDirectory[1] = 01;
         blockDirectory[2] = 10;
         blockDirectory[3] = 11;
+        for(int i=4;i<blockDirectory.size();i++)
+        {
+            blockDirectory[i]=2;
+        }
 
         // make sure to account for the created buckets by incrementing nextFreeBlock appropriately
         nextFreeBlock = 4 * BLOCK_SIZE; 
 
-        file.write(reinterpret_cast<const char*>(&blockDirectory[0]), blockDirectory.size() * BLOCK_SIZE);
+        //file.write(reinterpret_cast<const char*>(&blockDirectory[0]), blockDirectory.size() * BLOCK_SIZE);
         
         file.close(); 
     }
