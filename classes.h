@@ -1,15 +1,25 @@
+// *** I didn't have time to test my work. I got some of the basic stuff done. I'm available Tuesday evening to help with what you need 
+// This is what's left to do (I think this is it): 
+// Handle overflow pages (line 94)
+// Rehash when average page capacity is more than 70% (line 97)
+// findRecordById()  (line 166)
+// Make sure a max of 3 pages are in main memory at all times 
+
 #include <string>
 #include <vector>
 #include <string>
 #include <iostream>
 #include <sstream>
 #include <bitset>
+#include <time>
 using namespace std;
 
 class Record {
 public:
     int id, manager_id;
     std::string bio, name;
+
+    Record() : id(0), manager_id(0), bio(""), name("") {}
 
     Record(vector<std::string> fields) {
         id = stoi(fields[0]);
@@ -43,20 +53,56 @@ private:
 
     // Insert new record into index
     void insertRecord(Record record) {
+        int remainder = record.id % 216;
+        string binary_remainder = format(remainder, 'b');
+        string least_significant_bits = binary_remainder[-2:];
 
-        // No records written to index yet
-        if (numRecords == 0) {
-            // Initialize index with first blocks (start with 4)
-
-        }
+        ofstream file(fName, ios::app | ios::binary);
 
         // Add record to the index in the correct block, creating a overflow block if necessary
+        for (int i = 0; i < blockDirectory.size(); ++i) {
+            if (blockDirectory[i] == int(least_significant_bits)){
+                // Seek in file to beginging of hashed page
+                int startOfPage = i * BLOCK_SIZE + 1;
+                file.seekp(startOfPage);
 
+                // See if page is empty
+                bool isEmpty = file && file.gcount() == 0;
 
-        // Take neccessary steps if capacity is reached:
-		// increase n; increase i (if necessary); place records in the new bucket that may have been originally misplaced due to a bit flip
+                // If page is empty, write record to the beginging of the page
+                if (isEmpty){
+                    file.write(binary_remainder, sizeof(binary_remainder));
+                }
 
+                // If page is not empty, loop to the next available space in memory
+                else{
+                    while (!isEmpty) {
+                        // Read data at current position
+                        char buffer[256];
+                        file.read(buffer, sizeof(buffer));
+        
+                        // Check if read was successful and if data is empty
+                        isEmpty = file && file.gcount() == 0;
+        
+                        // If not empty, seek to next location
+                        if (!isEmpty) {
+                            startOfPage += sizeof(buffer);
+                            file.seekp(startOfPage);
+                        }
+                    }
 
+                    // If there's no room on page, create overflow page
+                    if ( ((i * BLOCK_SIZE + 1) + sizeof(binary_remainder)) > ((i * BLOCK_SIZE + 1) + 4096) ){
+                        // TO DO
+                        // increase n; increase i (if necessary); place records in the new bucket that may have been originally misplaced due to a bit flip
+                        // Will need to increase i once n > 2^i
+                    }
+
+                file.write(binary_remainder, sizeof(binary_remainder));
+                numRecords++;
+            }
+        }
+    }
     }
 
 public:
@@ -68,13 +114,52 @@ public:
         fName = indexFileName;
 
         // Create your EmployeeIndex file and write out the initial 4 buckets
+        ofstream file(fName, ios::app);
+        if (!file.is_open()) {
+            cerr << "Error creating file: " << fName << endl;
+            exit(EXIT_FAILURE);
+        }
+
+        blockDirectory.resize(256);
+        blockDirectory[0] = 00;
+        blockDirectory[1] = 01;
+        blockDirectory[2] = 10;
+        blockDirectory[3] = 11;
+
         // make sure to account for the created buckets by incrementing nextFreeBlock appropriately
-      
+        nextFreeBlock = 4 * BLOCK_SIZE; 
+
+        file.write(reinterpret_cast<const char*>(&blockDirectory[0]), blockDirectory.size() * BLOCK_SIZE);
+        
+        file.close(); 
     }
 
     // Read csv file and add records to the index
     void createFromFile(string csvFName) {
-        
+        ifstream file(csvFName);
+        if (!file.is_open()) {
+            cerr << "Error opening file: " << csvFName << endl;
+            exit(EXIT_FAILURE);
+        }
+
+        string line;
+        // Read each line from the CSV file.
+        while (getline(file, line)) {
+            vector<string> fields;
+            stringstream ss(line);
+
+            // Split each line into fields using ',' as the delimiter.
+            string field;
+            while (getline(ss, field, ',')) {
+                fields.push_back(field);
+            }
+
+            // Create a Record from the fields and insert it.
+            Record record(fields);
+            insertRecord(record);
+        }
+
+        file.close(); // Close the CSV file after processing.
     }
 
     // Given an ID, find the relevant record and print it
