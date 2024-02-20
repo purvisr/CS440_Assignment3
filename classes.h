@@ -10,6 +10,7 @@
 #include <string>
 #include <iostream>
 #include <istream>
+#include <fstream>
 #include <sstream>
 #include <bitset>
 #include <ctime>
@@ -70,7 +71,7 @@ private:
                 file.seekp(startOfPage);
 
                 // See if page is empty
-                bool isEmpty = (file.gcount() == 0);
+                bool isEmpty = (file && file.gcount() == 0);
 
                 // If page is empty, write record to the beginging of the page
                 if (isEmpty){
