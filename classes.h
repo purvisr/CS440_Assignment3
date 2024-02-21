@@ -48,7 +48,7 @@ private:
     vector<int> blockDirectory; // Map the least-significant-bits of h(id) to a bucket location in EmployeeIndex (e.g., the jth bucket)
                                 // can scan to correct bucket using j*BLOCK_SIZE as offset (using seek function)
 								// can initialize to a size of 256 (assume that we will never have more than 256 regular (i.e., non-overflow) buckets)
-    vector<float> average;
+    vector<int> average;
     int n;  // The number of indexes in blockDirectory currently being used
     int bits;	// The number of least-significant-bits of h(id) to check. Will need to increase i once n > 2^i
     int numRecords;    // Records currently in index. Used to test whether to increase n
@@ -111,11 +111,20 @@ private:
                     }
 
                     // If there's no room on page, create overflow page
-                    if (average[startOfPage-1/BLOCK_SIZE]/BLOCK_SIZE >= 0.7){
+                    if (4*tally+sizeof(binary_remainder)>>BLOCK_SIZE){
                         // increase n; increase i (if necessary); place records in the new bucket that may have been originally misplaced due to a bit flip
-                        // Will need to increase i once n > 2^i
-                        n+=1;
-                        average.push_back(sizeof(binary_remainder)/BLOCK_SIZE);
+                        // Will need to increase i once n > 2^
+                        int average_capacity=0;
+                        for (int j=0; j<n;j++){
+                            average_capacity += average[j]/BLOCK_SIZE;
+                        }
+                        average_capacity = average_capacity / n;
+                        if(average_capacity >= 0.7)
+                        {
+                            n+=1;
+                            average[n-1] = 0;
+                        }
+                        
                         if (n >= pow(2,i)+1)
                         {
                             bits+=1;
@@ -164,11 +173,11 @@ public:
             blockDirectory[i]=2;
         }
 
-        average.resize(4);
-        for(int i=0;i<average.size();i++)
-        {
-            average[i]=0;
-        }
+        average.resize(256);
+        average[0] = 0;
+        average[1] = 0;
+        average[2] = 0;
+        average[3] = 0;
 
         // make sure to account for the created buckets by incrementing nextFreeBlock appropriately
         nextFreeBlock = 4 * BLOCK_SIZE; 
