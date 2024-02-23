@@ -76,9 +76,11 @@ private:
                         //file.read(pageBuffer,sizeof(pageBuffer));
                         char id[9];
                         char mid[9];
-                        itoa(record.id, id, 10);
+                        //itoa(record.id, id, 10);
+                        snprintf(id,sizeof(id),"%d",record.id);
                         char tempid= id[0];
-                        itoa(record.manager_id, mid, 10);
+                        //itoa(record.manager_id, mid, 10);
+                        snprintf(mid,sizeof(mid),"%d",record.manager_id);
                         id[0] = tempid;
 
                         fstream file(fName, fstream::in | fstream::out | ios::binary);
@@ -130,9 +132,11 @@ private:
                         //file.read(pageBuffer,sizeof(pageBuffer));
                         char id[9];
                         char mid[9];
-                        itoa(record.id, id, 10);
+                        //itoa(record.id, id, 10);
+                        snprintf(id,sizeof(id),"%d",record.id);
                         char tempid= id[0];
-                        itoa(record.manager_id, mid, 10);
+                        //itoa(record.manager_id, mid, 10);
+                        snprintf(mid,sizeof(mid),"%d",record.manager_id);
                         id[0] = tempid;
 
                         fstream file(fName, fstream::in | fstream::out | ios::binary);
@@ -185,9 +189,12 @@ private:
                         //file.read(pageBuffer,sizeof(pageBuffer));
                         char id[9];
                         char mid[9];
-                        itoa(record.id, id, 10);
+                        //itoa(record.id, id, 10);
+                        snprintf(id,sizeof(id),"%d",record.id);
+                        //id = to_string(record.id);
                         char tempid= id[0];
-                        itoa(record.manager_id, mid, 10);
+                        //itoa(record.manager_id, mid, 10);
+                        snprintf(mid,sizeof(mid),"%d",record.manager_id);
                         id[0] = tempid;
 
                         fstream file(fName, fstream::in | fstream::out | ios::binary);
@@ -256,13 +263,11 @@ private:
 
 
             int oscillate = 0;
-            cout << pageBuffer <<endl;
             for(int i =0;i<BLOCK_SIZE;i++){
                 if(isdigit(pageBuffer[i])){
                     if(oscillate == 0){
                         memcpy(idToHash, pageBuffer+i, sizeof(idToHash)-sizeof(char));
                         idToHash[8] = '\0';
-                        cout << idToHash << endl;
                         oscillate = 1;
                         i+=7;
                         int remainder = atoi(idToHash) % 216;
@@ -274,7 +279,7 @@ private:
                         if (blockDirectory[n-1] == atoi(least_significant_bits_str)){
                             int tally = 8;
                             int start = i;
-                            cout << "test\n";
+                            
                             while(1){
                                 i+=1;
                                 if(isdigit(pageBuffer[i])){
@@ -416,7 +421,6 @@ public:
                 record.id = atoi(eid.c_str());
                 record.manager_id = atoi(mid.c_str());
                 file.close();
-                cout << "SUCCESS\n";
                 return record;
             }
         }
